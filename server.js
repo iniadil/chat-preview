@@ -1,9 +1,10 @@
 // server.js
 const { Server } = require("socket.io");
 
+// Pastikan port 4000 terbuka di EC2
 const io = new Server(4000, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "http://54.206.215.134:3000", // Ganti dengan domain/IP front-end Anda
     methods: ["GET", "POST"],
   },
 });
@@ -11,9 +12,9 @@ const io = new Server(4000, {
 let messages = [];
 
 io.on("connection", (socket) => {
-  console.log("User connected", socket.id);
+  console.log("User connected:", socket.id);
 
-  // Kirim riwayat pesan ke klien baru
+  // Kirim pesan awal
   socket.emit("initMessages", messages);
 
   socket.on("newMessage", (msg) => {
@@ -21,12 +22,10 @@ io.on("connection", (socket) => {
     io.emit("messageBroadcast", msg);
   });
 
-  // Edit pesan
   socket.on("editMessage", ({ id, newText, editor }) => {
     const idx = messages.findIndex((m) => m.id === id);
     if (idx > -1) {
       const msg = messages[idx];
-      // Hanya pengirim asli yang boleh edit
       if (msg.sender === editor) {
         msg.text = newText;
         msg.edited = true;
@@ -35,12 +34,10 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Hapus pesan
   socket.on("deleteMessage", ({ id, requestor }) => {
     const idx = messages.findIndex((m) => m.id === id);
     if (idx > -1) {
       const msg = messages[idx];
-      // Hanya pengirim asli yang boleh hapus
       if (msg.sender === requestor) {
         messages.splice(idx, 1);
         io.emit("messageDeleted", { id });
@@ -48,28 +45,24 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Pesan terjadwal
   socket.on("scheduleMessage", ({ id, sender, text, imageUrl, delayMs }) => {
-    // Buat pesan "dummy" yang belum dikirim
     const scheduledMsg = {
-      id: id,
-      sender: sender,
-      text: text,
-      imageUrl: imageUrl,
-      timestamp: Date.now() + delayMs, // Waktu eksekusi mendatang
+      id,
+      sender,
+      text,
+      imageUrl,
+      timestamp: Date.now() + delayMs,
       scheduled: true,
     };
-    // Kita tidak langsung push ke messages karena belum terkirim.
     setTimeout(() => {
-      // Setelah delay, kirim pesan
       scheduledMsg.scheduled = false;
-      scheduledMsg.timestamp = Date.now(); // timestamp saat terkirim
+      scheduledMsg.timestamp = Date.now();
       messages.push(scheduledMsg);
       io.emit("messageBroadcast", scheduledMsg);
     }, delayMs);
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected", socket.id);
+    console.log("User disconnected:", socket.id);
   });
 });
