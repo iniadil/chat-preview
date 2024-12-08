@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import ChatInput from "@/app/components/ChatInput";
 import MessageBubble from "@/app/components/MessageBubble";
 import socket from "@/app/lib/socket";
-import ScheduledMessageForm from "@/app/components/ScheduledMessageForm";
 
 type Message = {
   id: string;
@@ -23,10 +22,12 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
+    // Saat pertama kali terkoneksi, dapatkan pesan awal
     socket.on("initMessages", (initialMessages: Message[]) => {
       setMessages(initialMessages);
     });
 
+    // Saat ada pesan baru disiarkan
     socket.on("messageBroadcast", (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
     });
@@ -37,7 +38,7 @@ export default function ChatPage() {
       );
     });
 
-    socket.on("messageDeleted", ({ id }: { id: any }) => {
+    socket.on("messageDeleted", ({ id }) => {
       setMessages((prev) => prev.filter((m) => m.id !== id));
     });
 
@@ -79,8 +80,8 @@ export default function ChatPage() {
 
   const handleScheduleMessage = (
     text: string,
-    delayMs: number,
-    imageUrl?: string
+    imageUrl: string | undefined,
+    delayMs: number
   ) => {
     const id = Math.random().toString();
     socket.emit("scheduleMessage", {
@@ -90,7 +91,7 @@ export default function ChatPage() {
       imageUrl,
       delayMs,
     });
-    // Tidak perlu ditambahkan ke messages sekarang, akan muncul saat delay tercapai.
+    // Pesan akan muncul setelah delay tercapai
   };
 
   return (
@@ -111,9 +112,10 @@ export default function ChatPage() {
           onSendMessage={handleSendMessage}
           onSendImage={handleSendImage}
         />
-        <div className="mt-2">
+        {/* Jika Anda menambahkan ScheduledMessageForm */}
+        {/* <div className="mt-2">
           <ScheduledMessageForm onSchedule={handleScheduleMessage} />
-        </div>
+        </div> */}
       </div>
     </div>
   );
