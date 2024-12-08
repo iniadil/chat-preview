@@ -37,7 +37,7 @@ export default function ChatPage() {
       );
     });
 
-    socket.on("messageDeleted", ({ id }) => {
+    socket.on("messageDeleted", ({ id }: { id: any }) => {
       setMessages((prev) => prev.filter((m) => m.id !== id));
     });
 
